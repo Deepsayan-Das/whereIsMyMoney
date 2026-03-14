@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { router } from 'expo-router'
+import { api } from '@/services/api'
 
 type AccountKind = 'saving' | 'current' | 'digitalWallet' | 'cash'
 type Currency = 'INR' | 'USD' | 'EUR' | 'GBP' | 'AUD' | 'CAD' | 'NZD' | 'JPY' | 'CNY' | 'RMB'
@@ -87,18 +88,11 @@ export default function AddAccount() {
     setError('')
     setLoading(true)
     try {
-      const token = 'YOUR_JWT_TOKEN'
-      const res = await fetch('http://YOUR_API_URL/api/accounts/create-account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          kind, currency,
-          balance: parseFloat(balance),
-          ...(budget ? { budget: parseFloat(budget) } : {}),
-        }),
+      await api.post('/accounts/create-account', {
+        kind, currency,
+        balance: parseFloat(balance),
+        ...(budget ? { budget: parseFloat(budget) } : {}),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Failed to create account')
       router.back()
     } catch (e: any) {
       setError(e.message)

@@ -8,14 +8,16 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { router } from 'expo-router'
+import { api } from '@/services/api'
 
 type AccountKind = 'saving' | 'current' | 'digitalWallet' | 'cash'
 
-const MOCK_ACCOUNTS = [
-  { _id: '1', kind: 'saving'        as AccountKind, currency: 'INR', balance: 42500 },
-  { _id: '2', kind: 'digitalWallet' as AccountKind, currency: 'INR', balance: 8200  },
-  { _id: '3', kind: 'cash'          as AccountKind, currency: 'INR', balance: 1500  },
-]
+interface Account {
+  _id: string
+  kind: AccountKind
+  currency: string
+  balance: number
+}
 
 const KIND_LABEL: Record<AccountKind, string> = {
   saving: '🏦 Savings', current: '🏧 Current', digitalWallet: '📱 Wallet', cash: '💵 Cash',
@@ -75,19 +77,40 @@ function ChipSelector<T extends string>({ options, selected, onSelect }: {
 }
 
 export default function AddTransaction() {
-  const [accountId, setAccountId] = useState(MOCK_ACCOUNTS[0]._id)
+  const [accounts,  setAccounts]  = React.useState<Account[]>([])
+  const [accountId, setAccountId] = useState('')
   const [type,      setType]      = useState<'credit' | 'debit'>('debit')
   const [amount,    setAmount]    = useState('')
   const [purpose,   setPurpose]   = useState('')
   const [note,      setNote]      = useState('')
   const [loading,   setLoading]   = useState(false)
+  const [accountsLoading, setAccountsLoading] = useState(true)
   const [error,     setError]     = useState('')
 
-  const selectedAccount = MOCK_ACCOUNTS.find(a => a._id === accountId)!
+  React.useEffect(() => {
+    fetchAccounts()
+  }, [])
+
+  async function fetchAccounts() {
+    try {
+      const res = await api.get('/users/get-all-accounts')
+      const accountsData = res.data.accounts || []
+      setAccounts(accountsData)
+      if (accountsData.length > 0) {
+        setAccountId(accountsData[0]._id)
+      }
+    } catch {
+      setError('Failed to fetch accounts')
+    } finally {
+      setAccountsLoading(false)
+    }
+  }
+
+  const selectedAccount = accounts.find(a => a._id === accountId)
   const parsedAmount    = parseFloat(amount) || 0
-  const balanceAfter    = type === 'credit'
-    ? selectedAccount.balance + parsedAmount
-    : selectedAccount.balance - parsedAmount
+  const balanceAfter    = selectedAccount 
+    ? (type === 'credit' ? selectedAccount.balance + parsedAmount : selectedAccount.balance - parsedAmount)
+    : 0
 
   async function handleSubmit() {
     if (!amount)  { setError('Amount is required');  return }
@@ -95,18 +118,11 @@ export default function AddTransaction() {
     setError('')
     setLoading(true)
     try {
-      const token = 'YOUR_JWT_TOKEN'
-      const res = await fetch('http://YOUR_API_URL/api/transactions/create-transaction', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          accountId, type, purpose,
-          amount: parsedAmount,
-          ...(note ? { note } : {}),
-        }),
+      await api.post('/transactions/create-transaction', {
+        accountId, type, purpose,
+        amount: parsedAmount,
+        ...(note ? { note } : {}),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Failed to create transaction')
       router.back()
     } catch (e: any) {
       setError(e.message)
@@ -137,7 +153,7 @@ export default function AddTransaction() {
               <View>
                 <Text className='text-text-muted text-xs mb-0.5'>Current Balance</Text>
                 <Text className='text-text-primary font-bold text-2xl'>
-                  ₹{selectedAccount.balance.toLocaleString('en-IN')}
+                  ₹{selectedAccount ? selectedAccount.balance.toLocaleString('en-IN') : '0'}
                 </Text>
               </View>
               {amount !== '' && !isNaN(parsedAmount) && (
@@ -161,11 +177,15 @@ export default function AddTransaction() {
             <View className='bg-primary rounded-3xl p-6'>
 
               <Text className='text-text-secondary font-bold text-base mb-3'>Account</Text>
-              <ChipSelector
-                options={MOCK_ACCOUNTS.map(a => ({ value: a._id, label: KIND_LABEL[a.kind] }))}
-                selected={accountId}
-                onSelect={setAccountId}
-              />
+              {accountsLoading ? (
+                <ActivityIndicator size="small" color="#2718fe" />
+              ) : (
+                <ChipSelector
+                  options={accounts.map(a => ({ value: a._id, label: KIND_LABEL[a.kind] }))}
+                  selected={accountId}
+                  onSelect={setAccountId}
+                />
+              )}
 
               <Text className='text-text-secondary font-bold text-base mb-3'>Type</Text>
               <ChipSelector
@@ -178,7 +198,7 @@ export default function AddTransaction() {
               />
 
               <Text className='text-text-secondary font-bold text-base mb-3'>Amount</Text>
-              <NeoInput placeholder='0.00' value={amount} onChangeText={setAmount} keyboardType='numeric' prefix={selectedAccount.currency} />
+              <NeoInput placeholder='0.00' value={amount} onChangeText={setAmount} keyboardType='numeric' prefix={selectedAccount?.currency || 'INR'} />
 
               <Text className='text-text-secondary font-bold text-base mb-3'>Purpose</Text>
               <NeoInput placeholder='e.g. Groceries, Salary, Rent…' value={purpose} onChangeText={setPurpose} />

@@ -1,8 +1,36 @@
 import { Text, TextInput, TouchableOpacity, View } from 'react-native'
-import { Link } from 'expo-router'
-import React from 'react'
+import { Link, useRouter } from 'expo-router'
+import React, { useState } from 'react'
+import { api } from '../services/api'
+import { saveToken } from '../services/authStorage'
 
 const Login = () => {
+
+  const router = useRouter()
+
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+
+  const handleLogin = async () => {
+    try {
+
+      const res = await api.post("/users/login", {
+        email,
+        password
+      })
+
+      const token = res.data.token
+
+      await saveToken(token)
+
+      router.replace("/Dashboard")
+
+    } catch (err) {
+      console.log(err)
+      alert("Invalid email or password")
+    }
+  }
+
   return (
     <View className='flex-1 justify-center items-center bg-[#f1f1f3]'>
 
@@ -10,7 +38,7 @@ const Login = () => {
       <View
         className='w-[90%] h-[60%] rounded-3xl'
         style={{
-          shadowColor: '#c8c8e0',   // muted blue-gray, matches your theme
+          shadowColor: '#c8c8e0',
           shadowOffset: { width: 10, height: 10 },
           shadowOpacity: 1,
           shadowRadius: 12,
@@ -33,42 +61,57 @@ const Login = () => {
           >
             <Text className='text-text-secondary font-bold text-5xl'>Welcome Back</Text>
             <Text className='text-text-muted text-lg'>Login to your account</Text>
+
             <TextInput
-                placeholder='Email'
-                 className="bg-primary rounded-full p-4 px-6 mb-5 w-[90%]"
-          style={{
-            shadowColor: "#271873",
-            shadowOffset: { width: 4, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 6,
-            elevation: 5,
-          }}/>
-          <TextInput
-                placeholder='Password'
-                 className="bg-primary rounded-full p-4 px-6 mb-5 w-[90%]"
-          style={{
-            shadowColor: "#271873",
-            shadowOffset: { width: 4, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 6,
-            elevation: 5,
-          }}/>
-          <TouchableOpacity className='bg-secondary rounded-full flex justify-center items-center w-[90%] py-4'
-          style={{
-            shadowColor: "#271873",
-            shadowOffset: { width: 4, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 6,
-            elevation: 5,
-          }}>
-                <Text className='text-primary font-bold text-2xl'>Login</Text>
-          </TouchableOpacity>
+              placeholder='Email'
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              className="bg-primary rounded-full p-4 px-6 mb-5 w-[90%]"
+              style={{
+                shadowColor: "#271873",
+                shadowOffset: { width: 4, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+                elevation: 5,
+              }}
+            />
 
-          <Text className='text-md text-text-muted'>Don&apos;t Have An Account ?<Link href="/Signup" className='text-secondary font-bold text-lg'>Signup</Link></Text>
+            <TextInput
+              placeholder='Password'
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              className="bg-primary rounded-full p-4 px-6 mb-5 w-[90%]"
+              style={{
+                shadowColor: "#271873",
+                shadowOffset: { width: 4, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+                elevation: 5,
+              }}
+            />
 
-            
+            <TouchableOpacity
+              onPress={handleLogin}
+              className='bg-secondary rounded-full flex justify-center items-center w-[90%] py-4'
+              style={{
+                shadowColor: "#271873",
+                shadowOffset: { width: 4, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+                elevation: 5,
+              }}
+            >
+              <Text className='text-primary font-bold text-2xl'>Login</Text>
+            </TouchableOpacity>
+
+            <Text className='text-md text-text-muted'>
+              Don&apos;t Have An Account ?
+              <Link href="/Signup" className='text-secondary font-bold text-lg'>Signup</Link>
+            </Text>
+
           </View>
-
         </View>
       </View>
 

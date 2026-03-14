@@ -1,12 +1,44 @@
 import { Text, TextInput, TouchableOpacity, View } from 'react-native'
-import { Link } from 'expo-router'
-import React from 'react'
+import { Link, useRouter } from 'expo-router'
+import React, { useState } from 'react'
+import { api } from '../services/api'
 
 const Signup = () => {
+
+  const router = useRouter()
+
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+
+  const handleSignup = async () => {
+
+    if (password !== confirmPassword) {
+      alert("Passwords do not match")
+      return
+    }
+
+    try {
+
+      await api.post("/users/register", {
+        email,
+        password
+      })
+
+      alert("Account created successfully!")
+
+      router.replace("/Login")
+
+    } catch (err) {
+      console.log(err)
+      alert("Signup failed")
+    }
+  }
+
   return (
     <View className='flex-1 justify-center items-center bg-[#f1f1f3]'>
 
-      {/* Outer dark shadow — bottom-right */}
       <View
         className='w-[90%] rounded-3xl'
         style={{
@@ -17,7 +49,6 @@ const Signup = () => {
           elevation: 6,
         }}
       >
-        {/* Inner light shadow — top-left highlight */}
         <View
           className='w-full rounded-3xl'
           style={{
@@ -27,7 +58,7 @@ const Signup = () => {
             shadowRadius: 12,
           }}
         >
-          {/* The actual card */}
+
           <View className='w-full rounded-3xl bg-primary justify-evenly items-center border-2 border-[#f7f7ff] py-12 gap-y-2'>
 
             <Text className='text-text-secondary font-bold text-5xl'>Create Account</Text>
@@ -35,6 +66,8 @@ const Signup = () => {
 
             <TextInput
               placeholder='Full Name'
+              value={name}
+              onChangeText={setName}
               className="bg-primary rounded-full p-4 px-6 w-[90%]"
               style={{
                 shadowColor: "#271873",
@@ -49,6 +82,8 @@ const Signup = () => {
               placeholder='Email'
               keyboardType='email-address'
               autoCapitalize='none'
+              value={email}
+              onChangeText={setEmail}
               className="bg-primary rounded-full p-4 px-6 w-[90%]"
               style={{
                 shadowColor: "#271873",
@@ -62,6 +97,8 @@ const Signup = () => {
             <TextInput
               placeholder='Password'
               secureTextEntry
+              value={password}
+              onChangeText={setPassword}
               className="bg-primary rounded-full p-4 px-6 w-[90%]"
               style={{
                 shadowColor: "#271873",
@@ -75,6 +112,8 @@ const Signup = () => {
             <TextInput
               placeholder='Confirm Password'
               secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
               className="bg-primary rounded-full p-4 px-6 w-[90%] mb-4"
               style={{
                 shadowColor: "#271873",
@@ -86,6 +125,7 @@ const Signup = () => {
             />
 
             <TouchableOpacity
+              onPress={handleSignup}
               className='bg-secondary rounded-full flex justify-center items-center w-[90%] py-4'
               style={{
                 shadowColor: "#271873",

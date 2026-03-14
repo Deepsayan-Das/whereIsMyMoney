@@ -1,5 +1,6 @@
 import Account from '../models/account.model.js';
 import User from '../models/user.model.js';
+import Transaction from '../models/transaction.model.js';
 
 export const createUser = async (email, password) => {
     if (!email || !password)

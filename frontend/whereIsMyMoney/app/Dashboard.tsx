@@ -1,21 +1,23 @@
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   Animated,
-  Pressable,
+  RefreshControl,
 } from 'react-native'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { getRandomWelcome, getRandomThought } from '@/constants/dashboard'
 import FinnAdvisor from '@/components/advisor/FinnAdvisor'
+import { api } from '@/services/api'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type AccountKind = 'saving' | 'current' | 'digitalWallet' | 'cash'
 
-interface Account {
+export interface Account {
   _id: string
   kind: AccountKind
   currency: string
@@ -24,7 +26,7 @@ interface Account {
   budgetReached?: boolean
 }
 
-interface Transaction {
+export interface Transaction {
   _id: string
   accountId: string
   amount: number
@@ -37,19 +39,6 @@ interface Transaction {
 
 // ── Mock Data (replace with API calls) ───────────────────────────────────────
 
-const MOCK_ACCOUNTS: Account[] = [
-  { _id: '1', kind: 'saving',        currency: 'INR', balance: 42500,  budget: 50000, budgetReached: false },
-  { _id: '2', kind: 'digitalWallet', currency: 'INR', balance: 8200,   budget: 10000, budgetReached: false },
-  { _id: '3', kind: 'cash',          currency: 'INR', balance: 1500,   budgetReached: false },
-]
-
-const MOCK_TRANSACTIONS: Transaction[] = [
-  { _id: 't1', accountId: '1', amount: 5000,  type: 'credit', purpose: 'Salary',       createdAt: '2025-03-14T09:00:00Z', balanceAfterTransaction: 42500 },
-  { _id: 't2', accountId: '1', amount: 1200,  type: 'debit',  purpose: 'Groceries',    createdAt: '2025-03-13T14:30:00Z', balanceAfterTransaction: 37500 },
-  { _id: 't3', accountId: '2', amount: 499,   type: 'debit',  purpose: 'Netflix',      createdAt: '2025-03-13T10:00:00Z', balanceAfterTransaction: 8200  },
-  { _id: 't4', accountId: '1', amount: 3000,  type: 'debit',  purpose: 'Rent',         createdAt: '2025-03-12T08:00:00Z', balanceAfterTransaction: 38700 },
-  { _id: 't5', accountId: '3', amount: 500,   type: 'credit', purpose: 'Cash received',createdAt: '2025-03-11T16:00:00Z', balanceAfterTransaction: 1500  },
-]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -250,8 +239,7 @@ function BudgetSummaryCard({ accounts }: { accounts: Account[] }) {
 
 // ── FAB ───────────────────────────────────────────────────────────────────────
 
-function FAB() {
-  const [open, setOpen]     = useState(false)
+function FAB({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
   const rotation            = useState(new Animated.Value(0))[0]
   const menuOpacity         = useState(new Animated.Value(0))[0]
   const menuTranslate       = useState(new Animated.Value(20))[0]
@@ -334,16 +322,44 @@ function FAB() {
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 const Dashboard = () => {
-  const totalBalance = MOCK_ACCOUNTS.reduce((s, a) => s + a.balance, 0)
+  const [accounts, setAccounts] = useState<Account[]>([])
+const [transactions, setTransactions] = useState<Transaction[]>([])
+const [refreshing, setRefreshing] = useState(false)
+const [fabOpen, setFabOpen] = useState(false)
+
+useFocusEffect(
+  useCallback(() => {
+    fetchDashboardData()
+  }, [])
+)
+
+const fetchDashboardData = async () => {
+  setRefreshing(true)
+  try {
+    const accountsRes = await api.get("/users/get-all-accounts")
+    const transactionsRes = await api.get("/users/get-all-transactions")
+
+    setAccounts(accountsRes.data.accounts || [])
+    setTransactions(transactionsRes.data.transactions || [])
+  } catch (err) {
+    console.log("Dashboard fetch error", err)
+  } finally {
+    setRefreshing(false)
+  }
+}
+  const totalBalance = accounts.reduce((s, a) => s + a.balance, 0)
   const { greeting, subtitle } = getRandomWelcome()
   const thought = getRandomThought()
 
   return (
-    <View className='flex-1 bg-[#f1f1f3]'>
+    <SafeAreaView className='flex-1 bg-[#f1f1f3]' edges={['right', 'left', 'bottom']}>
       <ScrollView
         className='flex-1'
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={fetchDashboardData} />
+        }
       >
 
         {/* ── Header ── */}
@@ -361,7 +377,7 @@ const Dashboard = () => {
           {formatCurrency(totalBalance, 'INR')}
         </Text>
         <Text className='text-muted text-xs mt-1'>
-          across {MOCK_ACCOUNTS.length} accounts
+          across {accounts.length} accounts
         </Text>
       </View>
     </View>
@@ -384,7 +400,7 @@ const Dashboard = () => {
         <View className='px-6 mb-6'>
           <SectionLabel text='Accounts' />
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {MOCK_ACCOUNTS.map(acc => (
+            {accounts.map(acc => (
               <AccountCard key={acc._id} account={acc} />
             ))}
           </ScrollView>
@@ -393,13 +409,13 @@ const Dashboard = () => {
         {/* ── Budget Summary ── */}
         <View className='px-6 mb-2'>
           <SectionLabel text='Budget Overview' />
-          <BudgetSummaryCard accounts={MOCK_ACCOUNTS} />
+          <BudgetSummaryCard accounts={accounts} />
         </View>
 
         {/* ── Recent Transactions ── */}
         <View className='px-6'>
           <SectionLabel text='Recent Transactions' />
-          {MOCK_TRANSACTIONS.map(txn => (
+          {transactions.map(txn => (
             <TransactionRow key={txn._id} txn={txn} />
           ))}
         </View>
@@ -407,9 +423,9 @@ const Dashboard = () => {
       </ScrollView>
 
       {/* ── FAB ── */}
-      <FAB />
-      <FinnAdvisor/>
-    </View>
+      <FAB open={fabOpen} setOpen={setFabOpen} />
+      <FinnAdvisor accounts={accounts} transactions={transactions} isFabOpen={fabOpen} />
+    </SafeAreaView>
   )
 }
 
