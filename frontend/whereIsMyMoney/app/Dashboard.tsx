@@ -9,6 +9,7 @@ import {
 } from 'react-native'
 import { router } from 'expo-router'
 import { getRandomWelcome, getRandomThought } from '@/constants/dashboard'
+import FinnAdvisor from '@/components/advisor/FinnAdvisor'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -407,6 +408,7 @@ const Dashboard = () => {
 
       {/* ── FAB ── */}
       <FAB />
+      <FinnAdvisor/>
     </View>
   )
 }
