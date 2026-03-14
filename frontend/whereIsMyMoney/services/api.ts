@@ -23,3 +23,19 @@ api.interceptors.request.use(
     return Promise.reject(error)
   }
 )
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response && error.response.status === 401) {
+      // Token is invalid or expired
+      console.log("401 Unauthorized detected. Clearing token and redirecting...")
+      const { removeToken } = await import("./authStorage")
+      await removeToken()
+      
+      const { router } = await import("expo-router")
+      router.replace("/Login")
+    }
+    return Promise.reject(error)
+  }
+)

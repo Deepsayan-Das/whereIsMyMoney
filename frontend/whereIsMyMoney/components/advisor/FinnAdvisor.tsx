@@ -9,9 +9,12 @@ import {
 import {
   fetchInsights, sendChatMessage,
   type Insight, type ChatMessage, type FinancialContext,
-} from '@/services/gemini.service'
+} from '@/services/ai.service'
+import { Ionicons } from '@expo/vector-icons';
 import { FINN_FAB_SHD } from '@/constants/shadows'
-import { Account, Transaction } from '@/app/Dashboard'
+import { Account, Transaction } from '@/app/(tabs)/index'
+// Remove lucide-react-native import as it causes bundling errors
+
 
 interface FinnAdvisorProps {
   accounts: Account[]
@@ -89,7 +92,7 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
             lineHeight: 20,
           }}
         >
-          {msg.text}
+          {msg.content}
         </Text>
       </View>
     </View>
@@ -103,7 +106,7 @@ export default function FinnAdvisor({ accounts, transactions, isFabOpen }: FinnA
   const [insights, setInsights] = useState<Insight[]>([])
   const [loadingI, setLoadingI] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'model', text: "Hey! I'm Finn 👋 I've got your financial data loaded up. Ask me anything — or check your insights above!" },
+    { role: 'assistant', content: "Hey! I'm Finn 👋 I've got your financial data loaded up. Ask me anything — or check your insights above!" },
   ])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -115,7 +118,7 @@ export default function FinnAdvisor({ accounts, transactions, isFabOpen }: FinnA
   const scrollRef = useRef<ScrollView>(null)
 
   const insightsFetched = useRef(false)
-  const INPUT_OFFSET = 65 // tweak this value to adjust position
+  const INPUT_OFFSET = 65 // offset to lift input above keyboard appropriately
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', e => setKeyboardHeight(e.endCoordinates.height))
     const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0))
@@ -156,16 +159,16 @@ export default function FinnAdvisor({ accounts, transactions, isFabOpen }: FinnA
     const msg = text.trim()
     if (!msg || sending) return
     setInput('')
-    const userMsg: ChatMessage = { role: 'user', text: msg }
+    const userMsg: ChatMessage = { role: 'user', content: msg }
     setMessages(prev => [...prev, userMsg])
     setSending(true)
     setTab('chat')
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100)
     try {
       const reply = await sendChatMessage(msg, messages, currentCtx)
-      setMessages(prev => [...prev, { role: 'model', text: reply }])
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
     } catch {
-      setMessages(prev => [...prev, { role: 'model', text: "Hmm, I hit a snag. Try again in a second!" }])
+      setMessages(prev => [...prev, { role: 'assistant', content: "Hmm, I hit a snag. Try again in a second!" }])
     } finally {
       setSending(false)
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100)
@@ -315,7 +318,7 @@ export default function FinnAdvisor({ accounts, transactions, isFabOpen }: FinnA
                 className='w-9 h-9 rounded-full bg-secondary items-center justify-center ml-2'
                 style={{ opacity: input.trim() && !sending ? 1 : 0.35 }}
               >
-                <Text className='text-primary font-bold text-base'>↑</Text>
+                <Ionicons name="paper-plane" size={20} color="#f7f7ff" />
               </TouchableOpacity>
             </View>
 

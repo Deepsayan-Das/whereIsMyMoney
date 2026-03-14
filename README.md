@@ -1,6 +1,7 @@
 # 💰 Where Is My Money (WIMM)
 
-**Where Is My Money** is a high-performance, full-stack personal finance tracker designed with a "Neo-Brutalist" aesthetic. It features **Finn 🤖**, an integrated AI advisor powered by Google Gemini, providing live financial insights and proactive spending advice.
+**Where Is My Money** is a high-performance, full-stack personal finance tracker designed with a "Neo-Brutalist" aesthetic. It features **Finn 🤖**, an integrated AI advisor powered by Groq, providing live financial insights and proactive spending advice.
+
 
 ---
 
@@ -21,15 +22,16 @@
 - **Framework**: React Native (Expo SDK 54)
 - **Navigation**: Expo Router (File-based)
 - **Styling**: NativeWind (Tailwind CSS for React Native)
-- **AI**: Google Gemini AI (@google/generative-ai)
+- **AI**: Groq Cloud API (Llama 3.3 70B for both Chat & Analysis)
 - **Networking**: Axios with centralized API intercepts
 - **Storage**: Expo Secure Store for encrypted token persistence
 
 ### Backend
 - **Runtime**: Node.js
-- **Framework**: Express (v5)
+- **Framework**: Express
 - **Database**: MongoDB with Mongoose ODM
 - **Caching**: Redis (ioredis) for high-speed token management and session handling
+
 - **Security**: JWT (jsonwebtoken), Bcrypt for password hashing
 
 ---
@@ -74,8 +76,9 @@ npm install
 Create a `.env` file in the `frontend/whereIsMyMoney` folder:
 ```env
 EXPO_PUBLIC_API_URL=http://<your-local-ip>:3000/api
-EXPO_PUBLIC_GEMINI_KEY=your_gemini_api_key
+EXPO_PUBLIC_GROQ_API_KEY=your_groq_api_key
 ```
+
 Start the app:
 ```bash
 npx expo start -c

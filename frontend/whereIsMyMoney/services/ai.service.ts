@@ -1,8 +1,11 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
-const genAI = new GoogleGenerativeAI(process.env.EXPO_PUBLIC_GEMINI_KEY!)
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
-
+// ── Models ────────────────────────────────────────────────────────────────────
+const MODELS = {
+  chat: 'llama-3.3-70b-versatile',
+  analysis: 'llama-3.3-70b-versatile',
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -15,8 +18,8 @@ export interface Insight {
 }
 
 export interface ChatMessage {
-  role: 'user' | 'model'
-  text: string
+  role: 'user' | 'assistant'
+  content: string
 }
 
 export interface FinancialContext {
@@ -47,12 +50,12 @@ function buildSystemPrompt(ctx: FinancialContext): string {
   const budgetStatus = ctx.accounts
     .filter(a => a.budget && a.budget > 0)
     .map(a => ({
-      kind:         a.kind,
-      balance:      a.balance,
-      budget:       a.budget,
-      percentUsed:  Math.round((a.balance / a.budget!) * 100),
-      remaining:    a.budget! - a.balance,
-      budgetReached:a.budgetReached,
+      kind: a.kind,
+      balance: a.balance,
+      budget: a.budget,
+      percentUsed: Math.round((a.balance / a.budget!) * 100),
+      remaining: a.budget! - a.balance,
+      budgetReached: a.budgetReached,
     }))
 
   return `
@@ -86,31 +89,71 @@ STRICT RULES:
 `
 }
 
+// ── Helper: Groq Request ──────────────────────────────────────────────────────
+
+async function callGroq(model: string, messages: any[], temperature = 0.7) {
+  console.log(`[Groq] Calling ${model} with ${messages.length} messages...`)
+
+  if (!GROQ_API_KEY) {
+    console.error('[Groq] API Key is missing!')
+    throw new Error('Groq API Key (EXPO_PUBLIC_GROQ_API_KEY) not found in .env')
+  }
+
+  try {
+    const response = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature,
+        max_tokens: 1024,
+      }),
+    })
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}))
+      console.error(`[Groq] Error ${response.status}:`, errData)
+      throw new Error(`Groq API Error: ${response.status} - ${JSON.stringify(errData)}`)
+    }
+
+    const data = await response.json()
+    console.log('[Groq] Response received successfully')
+    return data.choices[0]?.message?.content?.trim() || ''
+  } catch (err) {
+    console.error('[Groq] Fetch failed:', err)
+    throw err
+  }
+}
+
 // ── Proactive insights ────────────────────────────────────────────────────────
 
 const INSIGHT_PROMPTS = [
   {
-    id:     'unusual_spending',
+    id: 'unusual_spending',
     prompt: `Look at the recent transactions. Is there any single category or 
              merchant that appears unusually often or has an unusually large amount 
              compared to the others? If yes, flag it in one friendly sentence starting 
              with the category/purpose name. If nothing stands out, reply with exactly: SKIP`,
   },
   {
-    id:     'budget_warning',
+    id: 'budget_warning',
     prompt: `Look at the budget status. Is any account using more than 75% of its budget?
              If yes, give one warm but clear warning sentence mentioning the exact 
              remaining amount. If all accounts are healthy, reply with exactly: SKIP`,
   },
   {
-    id:     'savings_praise',
+    id: 'savings_praise',
     prompt: `Look at the credit transactions. Is there evidence of consistent saving 
              or income coming in? If yes, give one short encouraging sentence praising 
              a specific positive behaviour you see. If nothing praiseworthy stands out, 
              reply with exactly: SKIP`,
   },
   {
-    id:     'budget_suggestion',
+    id: 'budget_suggestion',
     prompt: `Based on the spending patterns and current budgets, is there ONE specific 
              budget adjustment you would suggest — either raising or lowering a limit? 
              Give a single actionable sentence with the specific account and amount. 
@@ -119,9 +162,9 @@ const INSIGHT_PROMPTS = [
 ]
 
 function severityFromId(id: string): InsightSeverity {
-  if (id === 'savings_praise')    return 'positive'
-  if (id === 'budget_warning')    return 'warning'
-  if (id === 'unusual_spending')  return 'danger'
+  if (id === 'savings_praise') return 'positive'
+  if (id === 'budget_warning') return 'warning'
+  if (id === 'unusual_spending') return 'danger'
   if (id === 'budget_suggestion') return 'tip'
   return 'tip'
 }
@@ -133,12 +176,12 @@ export async function fetchInsights(ctx: FinancialContext): Promise<Insight[]> {
   await Promise.all(
     INSIGHT_PROMPTS.map(async ({ id, prompt }) => {
       try {
-        const chat = model.startChat({
-          history: [{ role: 'user', parts: [{ text: systemPrompt }] }],
-        })
-        const result = await chat.sendMessage(prompt)
-        const text   = result.response.text().trim()
-        if (text && text !== 'SKIP') {
+        const text = await callGroq(MODELS.analysis, [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ], 0.3) // Lower temperature for analysis
+
+        if (text && !text.includes('SKIP')) {
           insights.push({ id, severity: severityFromId(id), message: text })
         }
       } catch (e) {
@@ -159,17 +202,14 @@ export async function sendChatMessage(
 ): Promise<string> {
   const systemPrompt = buildSystemPrompt(ctx)
 
-  // Build Gemini history — prepend system prompt as first user turn
-  const geminiHistory = [
-    { role: 'user'  as const, parts: [{ text: systemPrompt }] },
-    { role: 'model' as const, parts: [{ text: "Hey! I'm Finn 👋 I've got your financial data loaded up. What's on your mind?" }] },
+  const messages = [
+    { role: 'system', content: systemPrompt },
     ...history.map(m => ({
-      role:  m.role as 'user' | 'model',
-      parts: [{ text: m.text }],
+      role: m.role,
+      content: m.content,
     })),
+    { role: 'user', content: userMessage }
   ]
 
-  const chat   = model.startChat({ history: geminiHistory })
-  const result = await chat.sendMessage(userMessage)
-  return result.response.text().trim()
+  return await callGroq(MODELS.chat, messages)
 }

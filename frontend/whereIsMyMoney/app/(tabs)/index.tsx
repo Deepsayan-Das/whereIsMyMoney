@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Animated,
   RefreshControl,
+  Image,
 } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { getRandomWelcome, getRandomThought } from '@/constants/dashboard'
@@ -37,23 +38,20 @@ export interface Transaction {
   balanceAfterTransaction: number
 }
 
-// ── Mock Data (replace with API calls) ───────────────────────────────────────
-
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const KIND_LABEL: Record<AccountKind, string> = {
-  saving:        '🏦 Savings',
-  current:       '🏧 Current',
+  saving: '🏦 Savings',
+  current: '🏧 Current',
   digitalWallet: '📱 Wallet',
-  cash:          '💵 Cash',
+  cash: '💵 Cash',
 }
 
 const KIND_ACCENT: Record<AccountKind, string> = {
-  saving:        '#2718fe',
-  current:       '#7c3aed',
+  saving: '#2718fe',
+  current: '#7c3aed',
   digitalWallet: '#0891b2',
-  cash:          '#16a34a',
+  cash: '#16a34a',
 }
 
 function formatCurrency(amount: number, currency: string) {
@@ -69,9 +67,9 @@ function formatDate(iso: string) {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
-const NEO_SHADOW_DARK  = { shadowColor: '#c8c8e0', shadowOffset: { width: 6,  height: 6  }, shadowOpacity: 0.7, shadowRadius: 10 }
-const NEO_SHADOW_LIGHT = { shadowColor: '#ffffff',  shadowOffset: { width: -5, height: -5 }, shadowOpacity: 1,   shadowRadius: 10 }
-const INPUT_SHADOW     = { shadowColor: '#271873',  shadowOffset: { width: 3,  height: 3  }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4 }
+const NEO_SHADOW_DARK = { shadowColor: '#c8c8e0', shadowOffset: { width: 6, height: 6 }, shadowOpacity: 0.7, shadowRadius: 10 }
+const NEO_SHADOW_LIGHT = { shadowColor: '#ffffff', shadowOffset: { width: -5, height: -5 }, shadowOpacity: 1, shadowRadius: 10 }
+const INPUT_SHADOW = { shadowColor: '#271873', shadowOffset: { width: 3, height: 3 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -84,10 +82,10 @@ function SectionLabel({ text }: { text: string }) {
 }
 
 function AccountCard({ account }: { account: Account }) {
-  const accent      = KIND_ACCENT[account.kind]
-  const hasBudget   = account.budget != null && account.budget > 0
-  const pctUsed     = hasBudget ? Math.min((account.balance / account.budget!) * 100, 100) : 0
-  const remaining   = hasBudget ? account.budget! - account.balance : 0
+  const accent = KIND_ACCENT[account.kind]
+  const hasBudget = account.budget != null && account.budget > 0
+  const pctUsed = hasBudget ? Math.min((account.balance / account.budget!) * 100, 100) : 0
+  const remaining = hasBudget ? account.budget! - account.balance : 0
 
   return (
     <View style={NEO_SHADOW_DARK} className='mr-4 rounded-2xl'>
@@ -166,10 +164,10 @@ function BudgetSummaryCard({ accounts }: { accounts: Account[] }) {
   const budgeted = accounts.filter(a => a.budget && a.budget > 0)
   if (budgeted.length === 0) return null
 
-  const totalBudget  = budgeted.reduce((s, a) => s + a.budget!,  0)
-  const totalSpent   = budgeted.reduce((s, a) => s + a.balance,  0)
-  const totalPct     = Math.min((totalSpent / totalBudget) * 100, 100)
-  const overallSafe  = totalPct < 80
+  const totalBudget = budgeted.reduce((s, a) => s + a.budget!, 0)
+  const totalSpent = budgeted.reduce((s, a) => s + a.balance, 0)
+  const totalPct = Math.min((totalSpent / totalBudget) * 100, 100)
+  const overallSafe = totalPct < 80
 
   return (
     <View style={NEO_SHADOW_DARK} className='rounded-2xl mb-6'>
@@ -214,7 +212,7 @@ function BudgetSummaryCard({ accounts }: { accounts: Account[] }) {
           {/* Per-account rows */}
           <View className='mt-4 gap-y-2'>
             {budgeted.map(a => {
-              const pct    = Math.min((a.balance / a.budget!) * 100, 100)
+              const pct = Math.min((a.balance / a.budget!) * 100, 100)
               const accent = KIND_ACCENT[a.kind]
               return (
                 <View key={a._id} className='flex-row items-center gap-x-3'>
@@ -240,16 +238,16 @@ function BudgetSummaryCard({ accounts }: { accounts: Account[] }) {
 // ── FAB ───────────────────────────────────────────────────────────────────────
 
 function FAB({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
-  const rotation            = useState(new Animated.Value(0))[0]
-  const menuOpacity         = useState(new Animated.Value(0))[0]
-  const menuTranslate       = useState(new Animated.Value(20))[0]
+  const rotation = useState(new Animated.Value(0))[0]
+  const menuOpacity = useState(new Animated.Value(0))[0]
+  const menuTranslate = useState(new Animated.Value(20))[0]
 
   function toggle() {
     const toOpen = !open
     setOpen(toOpen)
     Animated.parallel([
-      Animated.timing(rotation,      { toValue: toOpen ? 1 : 0, duration: 220, useNativeDriver: true }),
-      Animated.timing(menuOpacity,   { toValue: toOpen ? 1 : 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(rotation, { toValue: toOpen ? 1 : 0, duration: 220, useNativeDriver: true }),
+      Animated.timing(menuOpacity, { toValue: toOpen ? 1 : 0, duration: 200, useNativeDriver: true }),
       Animated.timing(menuTranslate, { toValue: toOpen ? 0 : 20, duration: 200, useNativeDriver: true }),
     ]).start()
   }
@@ -258,7 +256,7 @@ function FAB({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }
 
   const actions = [
     { label: 'Add Transaction', icon: '💸', onPress: () => { toggle(); router.push('/transactions/new') } },
-    { label: 'Add Account',     icon: '🏦', onPress: () => { toggle(); router.push('/account/new')     } },
+    { label: 'Add Account', icon: '🏦', onPress: () => { toggle(); router.push('/account/new') } },
   ]
 
   return (
@@ -321,38 +319,39 @@ function FAB({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-const Dashboard = () => {
+export default function Dashboard() {
   const [accounts, setAccounts] = useState<Account[]>([])
-const [transactions, setTransactions] = useState<Transaction[]>([])
-const [refreshing, setRefreshing] = useState(false)
-const [fabOpen, setFabOpen] = useState(false)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [refreshing, setRefreshing] = useState(false)
+  const [fabOpen, setFabOpen] = useState(false)
 
-useFocusEffect(
-  useCallback(() => {
-    fetchDashboardData()
-  }, [])
-)
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboardData()
+    }, [])
+  )
 
-const fetchDashboardData = async () => {
-  setRefreshing(true)
-  try {
-    const accountsRes = await api.get("/users/get-all-accounts")
-    const transactionsRes = await api.get("/users/get-all-transactions")
+  const fetchDashboardData = async () => {
+    setRefreshing(true)
+    try {
+      const accountsRes = await api.get("/users/get-all-accounts")
+      const transactionsRes = await api.get("/users/get-all-transactions")
 
-    setAccounts(accountsRes.data.accounts || [])
-    setTransactions(transactionsRes.data.transactions || [])
-  } catch (err) {
-    console.log("Dashboard fetch error", err)
-  } finally {
-    setRefreshing(false)
+      setAccounts(accountsRes.data.accounts || [])
+      setTransactions(transactionsRes.data.transactions || [])
+    } catch (err) {
+      console.log("Dashboard fetch error", err)
+    } finally {
+      setRefreshing(false)
+    }
   }
-}
+
   const totalBalance = accounts.reduce((s, a) => s + a.balance, 0)
   const { greeting, subtitle } = getRandomWelcome()
   const thought = getRandomThought()
 
   return (
-    <SafeAreaView className='flex-1 bg-[#f1f1f3]' edges={['right', 'left', 'bottom']}>
+    <SafeAreaView className='flex-1 bg-[#f1f1f3]' edges={['top', 'right', 'left', 'bottom']}>
       <ScrollView
         className='flex-1'
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -361,39 +360,55 @@ const fetchDashboardData = async () => {
           <RefreshControl refreshing={refreshing} onRefresh={fetchDashboardData} />
         }
       >
+        {/* ── Branding Header ── */}
+        <View className='px-6 pt-6 flex-row items-center justify-between'>
+          <View className='flex-row items-center gap-x-2'>
+            <Image
+              source={require('../../assets/images/logo.png')}
+              className='w-10 h-10'
+              resizeMode='contain'
+            />
+            <Text className='text-text-primary font-black text-2xl tracking-tighter'>WIMM</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/profile')}
+            className='w-10 h-10 rounded-full bg-border items-center justify-center'
+          >
+            <Text className='text-lg'>👤</Text>
+          </TouchableOpacity>
+        </View>
 
-        {/* ── Header ── */}
-{/* ── Header ── */}
-<View className='px-6 pt-16 pb-6'>
-  <Text className='text-text-muted text-base'>{greeting}</Text>
-  <Text className='text-text-primary font-bold text-3xl mt-1'>{subtitle}</Text>
+        {/* ── Welcome Header ── */}
+        <View className='px-6 pt-8 pb-6'>
+          <Text className='text-text-muted text-base'>{greeting}</Text>
+          <Text className='text-text-primary font-bold text-3xl mt-1'>{subtitle}</Text>
 
-  {/* Total balance hero */}
-  <View style={[NEO_SHADOW_DARK, { marginTop: 20 }]} className='rounded-3xl'>
-    <View style={NEO_SHADOW_LIGHT} className='rounded-3xl'>
-      <View className='bg-secondary rounded-3xl px-6 py-6'>
-        <Text className='text-muted text-sm mb-1'>Total Balance</Text>
-        <Text className='text-primary font-bold text-5xl'>
-          {formatCurrency(totalBalance, 'INR')}
-        </Text>
-        <Text className='text-muted text-xs mt-1'>
-          across {accounts.length} accounts
-        </Text>
-      </View>
-    </View>
-  </View>
+          {/* Total balance hero */}
+          <View style={[NEO_SHADOW_DARK, { marginTop: 20 }]} className='rounded-3xl'>
+            <View style={NEO_SHADOW_LIGHT} className='rounded-3xl'>
+              <View className='bg-secondary rounded-3xl px-6 py-6'>
+                <Text className='text-muted text-sm mb-1'>Total Balance</Text>
+                <Text className='text-primary font-bold text-5xl'>
+                  {formatCurrency(totalBalance, 'INR')}
+                </Text>
+                <Text className='text-muted text-xs mt-1'>
+                  across {accounts.length} accounts
+                </Text>
+              </View>
+            </View>
+          </View>
 
-  {/* Thought of the day */}
-        <View style={[NEO_SHADOW_DARK, { marginTop: 16 }]} className='rounded-2xl'>
+          {/* Thought of the day */}
+          <View style={[NEO_SHADOW_DARK, { marginTop: 16 }]} className='rounded-2xl'>
             <View style={NEO_SHADOW_LIGHT} className='rounded-2xl'>
-            <View className='bg-primary rounded-2xl px-5 py-4'>
+              <View className='bg-primary rounded-2xl px-5 py-4'>
                 <Text className='text-text-muted text-xs font-semibold mb-1 uppercase tracking-widest'>
-                Thought of the day
+                  Thought of the day
                 </Text>
                 <Text className='text-text-secondary text-sm leading-5'>{thought}</Text>
+              </View>
             </View>
-            </View>
-        </View>
+          </View>
         </View>
 
         {/* ── Account Cards ── */}
@@ -414,8 +429,13 @@ const fetchDashboardData = async () => {
 
         {/* ── Recent Transactions ── */}
         <View className='px-6'>
-          <SectionLabel text='Recent Transactions' />
-          {transactions.map(txn => (
+          <View className='flex-row justify-between items-center mb-3'>
+            <SectionLabel text='Recent Transactions' />
+            <TouchableOpacity onPress={() => router.push('/(tabs)/transactions')}>
+              <Text className='text-secondary font-bold text-sm'>View All</Text>
+            </TouchableOpacity>
+          </View>
+          {transactions.slice(0, 5).map(txn => (
             <TransactionRow key={txn._id} txn={txn} />
           ))}
         </View>
@@ -428,5 +448,3 @@ const fetchDashboardData = async () => {
     </SafeAreaView>
   )
 }
-
-export default Dashboard
