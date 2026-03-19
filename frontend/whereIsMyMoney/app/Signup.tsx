@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Link, useRouter } from 'expo-router'
 import React, { useState } from 'react'
 import { api } from '../services/api'
+import { saveToken } from '@/services/authStorage'
 
 const Signup = () => {
 
@@ -14,18 +15,20 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState("")
 
   const handleSignup = async () => {
-
     if (password !== confirmPassword) {
       alert("Passwords do not match")
       return
     }
 
     try {
-
-      await api.post("/users/register", {
-        email,
-        password
+      const res = await api.post("/users/register", {
+        email: email.trim(),
+        password: password.trim()
       })
+
+      const token = res.data.token
+
+      await saveToken(token)
 
       alert("Account created successfully!")
 
@@ -64,8 +67,8 @@ const Signup = () => {
             <View className='w-full rounded-3xl bg-primary justify-evenly items-center border-2 border-[#f7f7ff] py-12 gap-y-2'>
 
               <View className='items-center mb-4'>
-                <Image 
-                  source={require('../assets/images/logo.png')} 
+                <Image
+                  source={require('../assets/images/logo.png')}
                   className='w-16 h-16 mb-2'
                   resizeMode='contain'
                 />

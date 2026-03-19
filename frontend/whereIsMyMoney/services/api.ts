@@ -1,8 +1,9 @@
 import axios from "axios"
 import { getToken } from "./authStorage"
 
+console.log("API URL : ", process.env.EXPO_PUBLIC_API_URL)
 export const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL || "http://10.98.206.154:3000/api",
+  baseURL: process.env.EXPO_PUBLIC_API_URL || "https://whereismymoney-l6yc.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -32,10 +33,10 @@ api.interceptors.response.use(
       console.log("401 Unauthorized detected. Clearing token and redirecting...")
       const { removeToken } = await import("./authStorage")
       await removeToken()
-      
+
       const { router } = await import("expo-router")
       router.replace("/Login")
     }
     return Promise.reject(error)
   }
-)
+)

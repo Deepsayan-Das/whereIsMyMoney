@@ -15,10 +15,12 @@ const Login = () => {
   const handleLogin = async () => {
     try {
 
+      console.log("Sending:", { email, password });
+
       const res = await api.post("/users/login", {
-        email,
-        password
-      })
+        email: email.trim(),
+        password: password.trim(),
+      });
 
       const token = res.data.token
 
@@ -27,7 +29,9 @@ const Login = () => {
       router.replace("/")
 
     } catch (err) {
-      console.log(err)
+      console.error(err)
+
+
       alert("Invalid email or password")
     }
   }
@@ -62,8 +66,8 @@ const Login = () => {
               className='w-full h-full rounded-3xl bg-primary justify-evenly items-center border-2 border-[#f7f7ff] py-12'
             >
               <View className='items-center mb-4'>
-                <Image 
-                  source={require('../assets/images/logo.png')} 
+                <Image
+                  source={require('../assets/images/logo.png')}
                   className='w-20 h-20 mb-2'
                   resizeMode='contain'
                 />
